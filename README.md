@@ -8,7 +8,6 @@ A full-stack web application for managing markdown-based posts in the `content/p
 - **Automated scaffolding**: creating a post runs `website.fish post "<name>"` to generate the folder and timestamped `index.md`.
 - **Dual-pane editor**: edit markdown using a CodeMirror-based editor with autosave and Prettier-backed auto-formatting on save.
 - **Live preview**: GitHub-styled markdown rendering with LaTeX support via KaTeX and syntax highlighting via highlight.js.
-- **Theme aware**: dark and light modes with persistent preference.
 - **File browser**: toggleable tree per post to upload, rename, delete files, and manage folders directly within the post directory.
 - **Robust backend**: Express API ensures safe filesystem operations, runs the fish script, and formats markdown consistently with Prettier.
 

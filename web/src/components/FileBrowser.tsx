@@ -40,6 +40,55 @@ function createTargetPath(parent: string, name: string): string {
   return parent ? `${parent}/${name}` : name
 }
 
+function getFileIcon(node: FileNode): string {
+  if (node.type === 'directory') {
+    return '📁'
+  }
+
+  const ext = node.name.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'stl':
+      return '🕋'
+    case 'md':
+    case 'markdown':
+      return '📝'
+    case 'jpg':
+    case 'jpeg':
+    case 'png':
+    case 'gif':
+    case 'svg':
+    case 'webp':
+      return '🏞️'
+    case 'pdf':
+      return '📄'
+    case 'txt':
+      return '📄'
+    case 'json':
+      return '📋'
+    case 'js':
+    case 'ts':
+    case 'jsx':
+    case 'tsx':
+      return '⚙️'
+    case 'css':
+    case 'scss':
+    case 'sass':
+      return '🎨'
+    case 'html':
+      return '🌐'
+    case 'zip':
+    case 'tar':
+    case 'gz':
+      return '📦'
+    case 'ds-store':
+      return '❌'
+    case 'ods':
+      return '📊'
+    default:
+      return '📄'
+  }
+}
+
 export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set())
@@ -181,9 +230,9 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
   })
 
   const uploadMutation = useMutation({
-    mutationFn: async (files: FileList) => {
+    mutationFn: async (files: File[]) => {
       let touchedIndex = false
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         await uploadFile(slug, currentDirectory, file)
         if (createTargetPath(currentDirectory, file.name).endsWith('index.md')) {
           touchedIndex = true
@@ -199,6 +248,20 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
       setErrorMessage(message)
     },
   })
+
+  const openFileInNewTab = (node: FileNode) => {
+    if (node.type !== 'file') {
+      return
+    }
+    const encodedPath = node.path
+      .split('/')
+      .filter(Boolean)
+      .map((segment) => encodeURIComponent(segment))
+      .join('/')
+    const targetSlug = encodeURIComponent(slug)
+    const url = `/media/posts/${targetSlug}/${encodedPath}`
+    window.open(url, '_blank', 'noopener')
+  }
 
   const handleSelect = (path: string) => {
     setSelectedPath(path)
@@ -240,62 +303,103 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
           const isActive = node.path === selectedPath
           return (
             <li key={node.path}>
-              <div
-                className={clsx('file-node', isActive && 'active')}
-                onClick={() => handleSelect(node.path)}
-                onDoubleClick={() => (isDirectory ? toggleExpanded(node.path) : undefined)}
-              >
-                <div className="file-node-main">
-                  {isDirectory ? (
+              <div className={clsx('file-node', isActive && 'active')}>
+                <div 
+                  className="file-node-main"
+                  onClick={(event) => {
+                    if (!isDirectory && (event.metaKey || event.ctrlKey)) {
+                      event.preventDefault()
+                      openFileInNewTab(node)
+                      return
+                    }
+                    handleSelect(node.path)
+                  }}
+                  onAuxClick={(event) => {
+                    if (!isDirectory && event.button === 1) {
+                      event.preventDefault()
+                      openFileInNewTab(node)
+                    }
+                  }}
+                  onDoubleClick={() => (isDirectory ? toggleExpanded(node.path) : undefined)}
+                >
+                  <div className="file-node-label">
+                    {isDirectory && (
+                      <button
+                        type="button"
+                        className="file-toggle"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          toggleExpanded(node.path)
+                        }}
+                        aria-label={isExpanded ? 'Collapse folder' : 'Expand folder'}
+                      >
+                        <svg 
+                          width="10" 
+                          height="10" 
+                          viewBox="0 0 10 10"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          style={{ 
+                            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                            transition: 'transform 0.15s ease'
+                          }}
+                        >
+                          <path 
+                            d="M3.5 1.5L7.5 5L3.5 8.5" 
+                            stroke="currentColor" 
+                            strokeWidth="1.5" 
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                    <span className="file-icon">{getFileIcon(node)}</span>
+                    <span className="file-node-name">{node.name}</span>
+                  </div>
+                  <div className="file-node-actions-inline">
                     <button
                       type="button"
-                      className="file-toggle"
+                      className="file-action"
                       onClick={(event) => {
                         event.stopPropagation()
-                        toggleExpanded(node.path)
+                        setErrorMessage(null)
+                        setSelectedPath(node.path)
+                        setRenameState({ path: node.path, name: node.name })
                       }}
+                      title="Rename"
+                      aria-label="Rename"
                     >
-                      {isExpanded ? '▾' : '▸'}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16.5 3.5L20.5 7.5L7 21H3V17L16.5 3.5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
                     </button>
-                  ) : (
-                    <span className="file-bullet">•</span>
-                  )}
-                  <span>{node.name}</span>
+                    <button
+                      type="button"
+                      className="file-action file-action-danger"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setErrorMessage(null)
+                        setSelectedPath(node.path)
+                        setDeleteState({
+                          path: node.path,
+                          name: node.name,
+                          isDirectory: isDirectory,
+                        })
+                      }}
+                      title="Delete"
+                      aria-label="Delete"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 6H5H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="file-node-actions-inline">
-                  <button
-                    type="button"
-                    className="file-action"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      setErrorMessage(null)
-                      setSelectedPath(node.path)
-                      setRenameState({ path: node.path, name: node.name })
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="file-action file-action-danger"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      setErrorMessage(null)
-                      setSelectedPath(node.path)
-                      setDeleteState({
-                        path: node.path,
-                        name: node.name,
-                        isDirectory: isDirectory,
-                      })
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
+                {isDirectory && isExpanded && node.children?.length ? (
+                  <div className="file-node-children">{renderNodes(node.children)}</div>
+                ) : null}
               </div>
-              {isDirectory && isExpanded && node.children?.length ? (
-                <div className="file-node-children">{renderNodes(node.children)}</div>
-              ) : null}
             </li>
           )
         })}
@@ -308,11 +412,12 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
       <div className="file-browser-header">
         <div>
           <strong>Files</strong>
-          <div className="file-hint">Current: {currentDirectory || '(root)'}</div>
+          <div className="file-hint">Current directory: {currentDirectory || '(root)'}</div>
         </div>
         <div className="file-browser-actions">
           <Button
             variant="secondary"
+            className="btn-sm"
             onClick={() => {
               setErrorMessage(null)
               setFolderModalOpen(true)
@@ -321,30 +426,41 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
             New Folder
           </Button>
           <Button
-            variant="secondary"
+            variant="primary"
+            className="btn-sm"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadMutation.isPending}
           >
-            Upload
+            Upload File
           </Button>
         </div>
       </div>
       <div className="file-browser-body">
         {errorMessage ? <div className="message message-error">{errorMessage}</div> : null}
         {filesQuery.isLoading ? (
-          <p>Loading files…</p>
+          <div className="loading-state">Loading files...</div>
         ) : filesQuery.data && filesQuery.data.length > 0 ? (
           renderNodes(filesQuery.data)
         ) : (
-          <p className="file-hint">No files yet.</p>
+          <div className="empty-state">
+            <p>No files yet.</p>
+            <p className="file-hint">
+              Upload a file or create a folder to get started.
+            </p>
+          </div>
         )}
       </div>
       <div className="file-browser-footer">
-        <div className="file-hint">
-          {selectedNode
-            ? `${selectedNode.type === 'directory' ? 'Directory' : 'File'}: ${selectedNode.name}`
-            : 'Select a file or folder to manage'}
-        </div>
+        {selectedNode ? (
+          <div>
+            <strong>{selectedNode.type === 'directory' ? 'Folder' : 'File'}:</strong>{' '}
+            {selectedNode.name}
+          </div>
+        ) : (
+          <div className="file-hint">
+            Select a file or folder to manage
+          </div>
+        )}
       </div>
       <input
         ref={fileInputRef}
@@ -352,10 +468,13 @@ export function FileBrowser({ slug, onStructureChange }: FileBrowserProps) {
         type="file"
         multiple
         onChange={(event) => {
-          if (event.target.files) {
-            uploadMutation.mutate(event.target.files)
-            event.target.value = ''
+          const { files } = event.target
+          if (!files || files.length === 0) {
+            return
           }
+          const selectedFiles = Array.from(files)
+          uploadMutation.mutate(selectedFiles)
+          event.target.value = ''
         }}
       />
 

@@ -264,21 +264,22 @@ app.get('/api/posts/:slug/files', async (req, res, next) => {
   }
 });
 
-app.post('/api/posts/:slug/files/upload', upload.single('file'), async (req, res, next) => {
+app.post('/api/posts/:slug/files/upload', upload.fields([{ name: 'file', maxCount: 1 }, { name: 'target', maxCount: 1 }]), async (req, res, next) => {
   try {
     const { slug } = req.params;
-    const { target = '' } = req.body;
-    if (!req.file) {
+    const target = req.body.target || '';
+    if (!req.files || !req.files.file || req.files.file.length === 0) {
       const error = new Error('File is required');
       error.status = 400;
       throw error;
     }
+    const file = req.files.file && Array.isArray(req.files.file) ? req.files.file[0] : req.files.file;
     const postDir = resolvePostDir(slug);
-    await ensurePostDirectory(postDir);
+    await fse.ensureDir(postDir); // Ensure post directory exists
     const destinationDir = resolveWithin(postDir, target);
     await fse.ensureDir(destinationDir);
-    const filePath = path.join(destinationDir, req.file.originalname);
-    await fs.writeFile(filePath, req.file.buffer);
+    const filePath = path.join(destinationDir, file.originalname);
+    await fs.writeFile(filePath, file.buffer);
     res.status(201).json({ message: 'File uploaded' });
   } catch (error) {
     next(error);
@@ -291,7 +292,7 @@ app.post('/api/posts/:slug/files/create-folder', async (req, res, next) => {
     const { parent = '', name } = req.body;
     assertValidName(name);
     const postDir = resolvePostDir(slug);
-  await ensurePostDirectory(postDir);
+    await fse.ensureDir(postDir); // Ensure post directory exists
     const parentDir = resolveWithin(postDir, parent);
     const folderPath = path.join(parentDir, name);
     const exists = await fse.pathExists(folderPath);

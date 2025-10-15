@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import CodeMirror from '@uiw/react-codemirror'
 import { markdown } from '@codemirror/lang-markdown'
-import { oneDark } from '@codemirror/theme-one-dark'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -15,11 +14,11 @@ import clsx from 'clsx'
 import { Button } from '../components/Button'
 import { FileBrowser } from '../components/FileBrowser'
 import { fetchPostIndex, savePostIndex } from '../api/posts'
-import { useTheme } from '../theme/ThemeProvider'
 import { formatRelativeTime } from '../utils/time'
 import type { ApiError } from '../api/client'
 import type { PluggableList } from 'unified'
 import type { Components } from 'react-markdown'
+import { EditorView } from '@codemirror/view'
 
 function isApiError(error: unknown): error is ApiError {
   return (
@@ -35,7 +34,6 @@ type SaveStatus = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
 export default function PostEditorPage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const { theme } = useTheme()
   const queryClient = useQueryClient()
   const [content, setContent] = useState('')
   const [status, setStatus] = useState<SaveStatus>('idle')
@@ -43,8 +41,10 @@ export default function PostEditorPage() {
   const [savingError, setSavingError] = useState<string | null>(null)
   const [hasInitialized, setHasInitialized] = useState(false)
   const [showFiles, setShowFiles] = useState(true)
+  const [viewMode, setViewMode] = useState<'split' | 'source' | 'preview'>('split')
   const lastSavedContent = useRef('')
   const autosaveTimer = useRef<number | null>(null)
+  const editorRef = useRef<any>(null)
 
   const postSlug = slug ?? ''
 
@@ -101,7 +101,7 @@ export default function PostEditorPage() {
     },
     onSuccess: (formatted) => {
       lastSavedContent.current = formatted
-      setContent(formatted)
+      updateContent(formatted, true)
       setStatus('saved')
       setLastSavedAt(new Date())
       queryClient.setQueryData(['postIndex', postSlug], formatted)
@@ -156,7 +156,7 @@ export default function PostEditorPage() {
     }, 1500)
   }, [content, hasInitialized, saveMutation.isPending, triggerSave])
 
-  const markdownExtensions = useMemo(() => [markdown()], [])
+  const markdownExtensions = useMemo(() => [markdown(), EditorView.lineWrapping], [])
   const remarkPlugins = useMemo<PluggableList>(() => [remarkGfm, remarkMath], [])
   const rehypePlugins = useMemo<PluggableList>(() => [rehypeRaw, rehypeKatex, rehypeHighlight], [])
   const resolveAssetUrl = useCallback(
@@ -208,6 +208,19 @@ export default function PostEditorPage() {
     }
   }, [status, lastSavedAt, savingError])
 
+  const updateContent = useCallback((newContent: string, preserveCursor = false) => {
+    if (preserveCursor && editorRef.current?.view) {
+      const editor = editorRef.current.view
+      const currentPos = editor.state.selection.main.head
+      editor.dispatch({
+        changes: { from: 0, to: editor.state.doc.length, insert: newContent },
+        selection: { anchor: Math.min(currentPos, newContent.length) }
+      })
+    } else {
+      setContent(newContent)
+    }
+  }, [])
+
   if (!postSlug) {
     return (
       <div className="card">
@@ -232,21 +245,71 @@ export default function PostEditorPage() {
   const isLoading = indexQuery.isLoading && !hasInitialized
   const previewContent = content || '*Start writing your post in Markdown.*'
 
+  const renderEditorPane = (isSinglePane: boolean) => (
+    <div className={clsx('editor-pane', isSinglePane && 'single-pane')}>
+      <CodeMirror
+        ref={editorRef}
+        value={content}
+        extensions={markdownExtensions}
+        onChange={(value) => updateContent(value, false)}
+        height="100%"
+      />
+    </div>
+  )
+
+  const renderPreviewPane = (isSinglePane: boolean) => (
+    <div className={clsx('preview-pane', isSinglePane && 'single-pane')}>
+      <article className="markdown-body">
+        <ReactMarkdown
+          remarkPlugins={remarkPlugins}
+          rehypePlugins={rehypePlugins}
+          components={markdownComponents}
+        >
+          {previewContent}
+        </ReactMarkdown>
+      </article>
+    </div>
+  )
+
   return (
     <div className="editor-page">
       <div className="editor-toolbar">
-        <div className="editor-toolbar-left">
-          <Button variant="secondary" onClick={() => navigate('/')}>Back</Button>
-          <h2>{postSlug}</h2>
-        </div>
-        <div className="editor-toolbar-right">
-          <Button variant="secondary" onClick={() => setShowFiles((prev) => !prev)}>
+        <Button variant="secondary" className="btn-sm" onClick={() => navigate('/')}>Back</Button>
+        <h2>{postSlug}</h2>
+        <div className="editor-toolbar-buttons">
+          <div className="editor-status">{statusMessage}</div>
+          <Button variant="secondary" className="btn-sm" onClick={() => setShowFiles((prev) => !prev)}>
             {showFiles ? 'Hide files' : 'Show files'}
           </Button>
-          <Button variant="secondary" onClick={triggerSave} disabled={saveMutation.isPending || content === lastSavedContent.current}>
+          <div className="editor-view-toggle" role="group" aria-label="Editor view mode">
+            <Button
+              variant="secondary"
+              className={clsx('btn-sm', 'view-toggle-btn', viewMode === 'source' && 'view-toggle-btn-active')}
+              onClick={() => setViewMode('source')}
+              aria-pressed={viewMode === 'source'}
+            >
+              Source
+            </Button>
+            <Button
+              variant="secondary"
+              className={clsx('btn-sm', 'view-toggle-btn', viewMode === 'split' && 'view-toggle-btn-active')}
+              onClick={() => setViewMode('split')}
+              aria-pressed={viewMode === 'split'}
+            >
+              Split
+            </Button>
+            <Button
+              variant="secondary"
+              className={clsx('btn-sm', 'view-toggle-btn', viewMode === 'preview' && 'view-toggle-btn-active')}
+              onClick={() => setViewMode('preview')}
+              aria-pressed={viewMode === 'preview'}
+            >
+              Preview
+            </Button>
+          </div>
+          <Button variant="secondary" className="btn-sm" onClick={triggerSave} disabled={saveMutation.isPending || content === lastSavedContent.current}>
             {saveMutation.isPending ? 'Saving…' : 'Save'}
           </Button>
-          <div className="editor-status">{statusMessage}</div>
         </div>
       </div>
 
@@ -270,35 +333,21 @@ export default function PostEditorPage() {
           />
         ) : null}
 
-        <div className="editor-panels">
+        <div className={clsx('editor-panels', viewMode !== 'split' && 'editor-panels-single')}>
           {isLoading ? (
             <div className="editor-pane">Loading content…</div>
+          ) : viewMode === 'source' ? (
+            renderEditorPane(true)
+          ) : viewMode === 'preview' ? (
+            renderPreviewPane(true)
           ) : (
             <PanelGroup direction="horizontal" style={{ height: '100%' }}>
               <Panel defaultSize={50} minSize={25}>
-                <div className="editor-pane">
-                  <CodeMirror
-                    value={content}
-                    extensions={markdownExtensions}
-                    onChange={(value) => setContent(value)}
-                    theme={theme === 'dark' ? oneDark : 'light'}
-                    height="100%"
-                  />
-                </div>
+                {renderEditorPane(false)}
               </Panel>
               <PanelResizeHandle className="splitter-handle" />
               <Panel defaultSize={50} minSize={25}>
-                <div className="preview-pane">
-                  <article className="markdown-body">
-                    <ReactMarkdown
-                      remarkPlugins={remarkPlugins}
-                      rehypePlugins={rehypePlugins}
-                      components={markdownComponents}
-                    >
-                      {previewContent}
-                    </ReactMarkdown>
-                  </article>
-                </div>
+                {renderPreviewPane(false)}
               </Panel>
             </PanelGroup>
           )}

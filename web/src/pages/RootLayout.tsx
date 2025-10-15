@@ -1,6 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import clsx from 'clsx'
-import { ThemeToggle } from '../components/ThemeToggle'
 
 export default function RootLayout() {
   const location = useLocation()
@@ -12,11 +11,8 @@ export default function RootLayout() {
     <div className="app-shell">
       <header className={clsx('app-header', isEditor && 'app-header-wide')}>
         <div className="app-brand">
-          <Link to="/">Content CMS</Link>
+          <Link to="/">CMS</Link>
           <span className="app-brand-subtitle">{title}</span>
-        </div>
-        <div className="header-actions">
-          <ThemeToggle />
         </div>
       </header>
       <main className={clsx('app-main', isEditor && 'app-main-wide')}>

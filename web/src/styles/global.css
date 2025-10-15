@@ -9,26 +9,11 @@
   --border-color: #d0d7de;
   --text-primary: #24292f;
   --text-secondary: #57606a;
-  --accent: #0969da;
+  --accent: #000000;
   --accent-hover: #0752a0;
   --danger: #d1242f;
   --danger-hover: #a0111f;
   --shadow: 0 10px 30px rgba(31, 35, 40, 0.08);
-}
-
-:root[data-theme='dark'] {
-  color-scheme: dark;
-  --bg-surface: #0d1117;
-  --bg-elevated: #161b22;
-  --bg-muted: #1f242d;
-  --border-color: #30363d;
-  --text-primary: #f0f6fc;
-  --text-secondary: #8b949e;
-  --accent: #58a6ff;
-  --accent-hover: #1f6feb;
-  --danger: #f85149;
-  --danger-hover: #c24038;
-  --shadow: 0 10px 30px rgba(1, 4, 9, 0.6);
 }
 
 * {
@@ -86,7 +71,7 @@ a:hover {
 }
 
 .app-brand {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -148,42 +133,47 @@ a:hover {
 }
 
 .btn-primary {
-  background-color: var(--accent);
+  background-color: #000;
   color: #fff;
+  border-color: #000;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
+  background-color: #333;
+  border-color: #333;
 }
 
 .btn-secondary {
-  background-color: var(--bg-muted);
-  color: var(--text-primary);
-  border-color: var(--border-color);
+  background-color: #000;
+  color: #fff;
+  border-color: #000;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--bg-elevated);
+  background-color: #333;
+  border-color: #333;
 }
 
 .btn-danger {
-  background-color: var(--danger);
+  background-color: var(--danger-hover);
   color: #fff;
+  border-color: var(--danger);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: var(--danger-hover);
+  background-color: #333;
+  border-color: #333;
 }
 
 .btn-ghost {
-  background-color: transparent;
-  border-color: transparent;
-  color: var(--text-primary);
-  font-size: 1.2rem;
+  background-color: #000;
+  border-color: #000;
+  color: #fff;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background-color: var(--bg-muted);
+  background-color: #333;
+  border-color: #333;
 }
 
 .input,
@@ -228,7 +218,7 @@ label {
 .card {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 1rem;
+  border-radius: 0.6rem;
   padding: 1.5rem;
   box-shadow: var(--shadow);
 }
@@ -300,7 +290,7 @@ label {
 .modal-container {
   position: relative;
   background: var(--bg-elevated);
-  border-radius: 1rem;
+  border-radius: 0.6rem;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow);
   max-height: 90vh;
@@ -363,7 +353,7 @@ label {
 
 .message {
   padding: 0.9rem 1.1rem;
-  border-radius: 0.75rem;
+  border-radius: 0.6rem;
   border: 1px solid var(--border-color);
   background-color: var(--bg-muted);
   color: var(--text-secondary);
@@ -393,7 +383,7 @@ label {
   text-align: center;
   color: var(--text-secondary);
   border: 1px dashed var(--border-color);
-  border-radius: 1rem;
+  border-radius: 0.6rem;
   background-color: var(--bg-elevated);
 }
 
@@ -410,15 +400,20 @@ label {
 .editor-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 1rem;
 }
 
-.editor-toolbar-left,
-.editor-toolbar-right {
+.editor-toolbar h2 {
+  margin: 0;
+  flex: 1;
+}
+
+.editor-toolbar-buttons {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-left: auto;
 }
 
 .editor-status {
@@ -430,7 +425,7 @@ label {
 
 .post-workspace {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 500px 1fr;
   gap: 1rem;
   align-items: stretch;
 }
@@ -442,19 +437,25 @@ label {
 .file-browser {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 1rem;
+  border-radius: 0.6rem;
   display: flex;
   flex-direction: column;
   min-height: 600px;
   overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .file-browser-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  min-height: 3.5rem;
 }
 
 .file-browser-footer {
@@ -462,8 +463,11 @@ label {
   align-items: center;
   justify-content: flex-start;
   gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  padding: 0.6rem 1rem;
   border-top: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  font-size: 0.85rem;
+  min-height: 2.5rem;
 }
 
 .file-browser-actions {
@@ -473,44 +477,123 @@ label {
 }
 
 .file-browser-body {
+  width: 100%;
+  padding: 0.25rem;
   flex: 1;
   overflow-y: auto;
-  padding: 0.75rem 1rem 1.25rem;
+  min-height: 0;
 }
 
 .file-tree {
   list-style: none;
-  padding-left: 0;
+  padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
+  width: 100%;
+}
+
+.file-tree ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.file-tree li {
+  margin: 0;
+  padding: 0;
 }
 
 .file-node {
-  border-radius: 0.5rem;
-  padding: 0.45rem 0.55rem;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.file-node:hover {
-  background-color: var(--bg-muted);
-}
-
-.file-node.active {
-  background-color: rgba(9, 105, 218, 0.12);
-  color: var(--accent-hover);
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 0.25rem;
 }
 
 .file-node-main {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  min-height: 2.5rem;
+}
+
+.file-node-main:hover {
+  background-color: var(--bg-hover);
+}
+
+.file-node.active > .file-node-main {
+  background-color: var(--bg-muted);
+  font-weight: 500;
+}
+
+.file-node-label {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
+}
+
+.file-node-children {
+  border-left: 1px dotted var(--border-color);
+  margin-left: 0.5rem;
+  width: calc(100% - 0.5rem);
+  margin-top: 0.25rem;
+}
+
+.file-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+  font-size: 0.75rem;
+  background-color: var(--bg-secondary);
+  border-radius: 0.6rem;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.file-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.file-icon {
+  font-size: 1rem;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.file-node-name {
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.file-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  opacity: 0.8;
 }
 
 .file-node-actions-inline {
@@ -520,10 +603,12 @@ label {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s ease;
+  margin-left: 0.75rem;
+  flex-shrink: 0;
 }
 
-.file-node:hover .file-node-actions-inline,
-.file-node.active .file-node-actions-inline {
+.file-node-main:hover .file-node-actions-inline,
+.file-node.active > .file-node-main .file-node-actions-inline {
   opacity: 1;
   pointer-events: auto;
 }
@@ -532,11 +617,17 @@ label {
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 0.8rem;
-  padding: 0.2rem 0.35rem;
-  border-radius: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.3rem;
+  border-radius: 0.6rem;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
 }
 
 .file-action:hover {
@@ -553,13 +644,34 @@ label {
   color: var(--danger-hover);
 }
 
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+.loading-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+.btn-sm {
+  font-size: 0.85rem !important;
+  padding: 0.35rem 0.7rem !important;
+}
+
+.upload-input {
+  display: none;
+}
+
 .file-toggle {
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  width: 1.5rem;
+  width: 1;
   height: 1.5rem;
-  border-radius: 0.4rem;
+  border-radius: 0.6rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -580,9 +692,8 @@ label {
 }
 
 .file-node-main span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 .file-node-children {
@@ -610,7 +721,7 @@ label {
 .editor-panels {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
-  border-radius: 1rem;
+  border-radius: 0.6rem;
   overflow: hidden;
   min-height: 600px;
   display: flex;
@@ -635,6 +746,21 @@ label {
 }
 
 .preview-pane {
+.editor-view-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.view-toggle-btn {
+  min-width: 3.5rem;
+}
+
+.view-toggle-btn-active {
+  background-color: #333 !important;
+  color: #fff !important;
+  border-color: #333 !important;
+}
   background-color: var(--bg-surface);
 }
 
@@ -644,21 +770,28 @@ label {
 }
 
 .editor-pane .cm-editor .cm-scroller {
+.editor-panels-single .editor-pane {
+  border-right: none;
+}
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   font-size: 0.95rem;
+}
+.editor-pane.single-pane {
+  border-right: none;
+}
+
+.preview-pane.single-pane {
+  border-right: none;
 }
 
 .markdown-body {
   background-color: transparent;
 }
 
-[data-theme='dark'] .markdown-body {
-  color: var(--text-primary);
-}
-
 .preview-pane img {
   max-width: 100%;
-  border-radius: 0.75rem;
+  /* border-radius: 0.6rem; */
+  display: block;
 }
 
 .preview-pane table {
@@ -681,11 +814,6 @@ label {
 
 .hljs {
   border-radius: 0.6rem;
-}
-
-[data-theme='dark'] .hljs {
-  background: var(--bg-muted);
-  color: var(--text-primary);
 }
 
 .splitter-handle[data-panel-group-direction='horizontal'] {
@@ -739,8 +867,9 @@ label {
     align-items: flex-start;
   }
 
-  .editor-toolbar-right {
+  .editor-toolbar-buttons {
     width: 100%;
     justify-content: space-between;
+    margin-left: 0;
   }
 }
