@@ -1,7 +1,7 @@
 import { type ButtonHTMLAttributes } from 'react'
 import clsx from 'clsx'
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost'
+export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost' | 'success'
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant

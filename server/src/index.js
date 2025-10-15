@@ -353,6 +353,76 @@ app.delete('/api/posts/:slug/files', async (req, res, next) => {
   }
 });
 
+app.post('/api/deploy', async (req, res, next) => {
+  try {
+    const { message } = req.body;
+    if (!message || typeof message !== 'string') {
+      const error = new Error('Commit message is required');
+      error.status = 400;
+      throw error;
+    }
+
+    const hugoSiteDir = path.resolve(process.env.HOME || '/home/zimengx', 'Code/hugoSite');
+    const dirExists = await fse.pathExists(hugoSiteDir);
+    if (!dirExists) {
+      const error = new Error('Hugo site directory not found');
+      error.status = 404;
+      throw error;
+    }
+
+    // Run git add .
+    await new Promise((resolve, reject) => {
+      const gitAdd = spawn('git', ['add', '.'], { cwd: hugoSiteDir });
+      let stderr = '';
+      gitAdd.stderr.on('data', (data) => { stderr += data.toString(); });
+      gitAdd.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`git add failed: ${stderr}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Run git commit
+    await new Promise((resolve, reject) => {
+      const gitCommit = spawn('git', ['commit', '-am', message], { cwd: hugoSiteDir });
+      let stderr = '';
+      let stdout = '';
+      gitCommit.stdout.on('data', (data) => { stdout += data.toString(); });
+      gitCommit.stderr.on('data', (data) => { stderr += data.toString(); });
+      gitCommit.on('close', (code) => {
+        // Code 0 = success, Code 1 = nothing to commit (not an error for us)
+        if (code !== 0 && code !== 1) {
+          reject(new Error(`git commit failed: ${stderr}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    // Run git push
+    await new Promise((resolve, reject) => {
+      const gitPush = spawn('git', ['push'], { cwd: hugoSiteDir });
+      let stderr = '';
+      let stdout = '';
+      gitPush.stdout.on('data', (data) => { stdout += data.toString(); });
+      gitPush.stderr.on('data', (data) => { stderr += data.toString(); });
+      gitPush.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`git push failed: ${stderr}`));
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    res.json({ message: 'Deployed successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
 const CLIENT_DIST = path.resolve(__dirname, '../../web/dist');
 const hasClientBundle = fse.pathExistsSync(CLIENT_DIST);
 

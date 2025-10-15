@@ -18,7 +18,10 @@ import { formatRelativeTime } from '../utils/time'
 import type { ApiError } from '../api/client'
 import type { PluggableList } from 'unified'
 import type { Components } from 'react-markdown'
-import { EditorView } from '@codemirror/view'
+import { EditorView, keymap, type Command } from '@codemirror/view'
+import { EditorSelection } from '@codemirror/state'
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 
 function isApiError(error: unknown): error is ApiError {
   return (
@@ -30,6 +33,187 @@ function isApiError(error: unknown): error is ApiError {
 }
 
 type SaveStatus = 'idle' | 'editing' | 'saving' | 'saved' | 'error'
+
+function wrapSelection(view: EditorView, before: string, after: string, placeholder: string) {
+  const { state } = view
+  const transaction = state.changeByRange((range) => {
+    const { from, to } = range
+    const selected = state.sliceDoc(from, to)
+    const text = selected.length > 0 ? selected : placeholder
+    const insert = `${before}${text}${after}`
+    const cursorStart = from + before.length
+    const cursorEnd = cursorStart + text.length
+    return {
+      changes: { from, to, insert },
+      range: EditorSelection.range(cursorStart, cursorEnd),
+    }
+  })
+  view.dispatch(transaction)
+  view.focus()
+  return true
+}
+
+function createWrapCommand(before: string, after = before, placeholder = 'text'): Command {
+  return (view) => wrapSelection(view, before, after, placeholder)
+}
+
+const insertLinkCommand: Command = (view) => {
+  const transaction = view.state.changeByRange((range) => {
+    const { from, to } = range
+    const selected = view.state.sliceDoc(from, to)
+    const linkText = selected.length > 0 ? selected : 'link text'
+    const insert = `[${linkText}]()`
+    const cursorPosition = from + linkText.length + 3 // Position after [text](
+    return {
+      changes: { from, to, insert },
+      range: EditorSelection.cursor(cursorPosition),
+    }
+  })
+  view.dispatch(transaction)
+  view.focus()
+  return true
+}
+
+const markdownFormattingKeymap = keymap.of([
+  { key: 'Mod-b', run: createWrapCommand('**', '**', 'bold text') },
+  { key: 'Mod-i', run: createWrapCommand('*', '*', 'italic text') },
+  { key: 'Mod-u', run: createWrapCommand('<u>', '</u>', 'underlined text') },
+  { key: 'Mod-Shift-s', run: createWrapCommand('~~', '~~', 'strikethrough') },
+  { key: 'Mod-Shift-c', run: createWrapCommand('`', '`', 'code') },
+  { key: 'Mod-k', run: insertLinkCommand },
+])
+
+const browserFindKeymap = keymap.of([
+  {
+    key: 'Mod-f',
+    preventDefault: false,
+    run: () => false,
+  },
+])
+
+const markdownHighlightStyle = HighlightStyle.define([
+  {
+    tag: [
+      tags.heading,
+      tags.strong,
+      tags.emphasis,
+      tags.strikethrough,
+      tags.quote,
+      tags.list,
+      tags.contentSeparator,
+      tags.meta,
+      tags.processingInstruction,
+      tags.comment,
+      tags.keyword,
+      tags.literal,
+      tags.string,
+      tags.monospace,
+      tags.brace,
+      tags.squareBracket,
+      tags.angleBracket,
+      tags.paren,
+      tags.punctuation,
+      tags.operator,
+      tags.escape,
+    ],
+    color: 'var(--text-primary)',
+  },
+  {
+    tag: [tags.link, tags.url],
+    color: 'var(--link-color)',
+  },
+  {
+    tag: tags.heading1,
+    color: 'var(--text-primary)',
+    fontWeight: '700',
+  },
+  {
+    tag: [tags.heading2, tags.heading3, tags.heading4, tags.heading5, tags.heading6],
+    color: 'var(--text-primary)',
+    fontWeight: '600',
+  },
+])
+
+const markdownHighlighting = syntaxHighlighting(markdownHighlightStyle)
+
+const markdownEditorBaseTheme = EditorView.theme({
+  '&.cm-editor': {
+    backgroundColor: 'transparent',
+    color: 'var(--text-primary)',
+  },
+  '.cm-content': {
+    color: 'var(--text-primary)',
+    caretColor: '#ffffff',
+  },
+  '.cm-line': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-link': {
+    color: 'var(--link-color)',
+  },
+  '.cm-url': {
+    color: 'var(--link-color)',
+  },
+  '.cm-formatting': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-header': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-strong': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-em': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-code': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-link': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-image': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-list': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-formatting-quote': {
+    color: 'var(--text-primary)',
+  },
+  '.cm-cursor': {
+    borderLeftColor: '#ffffff',
+  },
+  '.cm-dropCursor': {
+    borderLeftColor: '#ffffff',
+  },
+  '.cm-selectionLayer': {
+    mixBlendMode: 'normal',
+  },
+  '.cm-selectionBackground': {
+    opacity: 1,
+  },
+  // Dark mode selection styling
+  ':root[data-theme="dark"] & .cm-selectionLayer': {
+    mixBlendMode: 'normal',
+  },
+  ':root[data-theme="dark"] & .cm-selectionBackground': {
+    backgroundColor: '#03624c !important',
+    opacity: 1,
+  },
+  ':root[data-theme="dark"] &.cm-focused .cm-selectionBackground': {
+    backgroundColor: '#03624c !important',
+    opacity: 1,
+  },
+  ':root[data-theme="dark"] & .cm-line::selection': {
+    backgroundColor: '#03624c !important',
+    color: '#f8fafc',
+  },
+  ':root[data-theme="dark"] & .cm-line::-moz-selection': {
+    backgroundColor: '#03624c !important',
+    color: '#f8fafc',
+  },
+})
 
 export default function PostEditorPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -153,10 +337,13 @@ export default function PostEditorPage() {
     }
     autosaveTimer.current = window.setTimeout(() => {
       triggerSave()
-    }, 1500)
+    }, 40000)
   }, [content, hasInitialized, saveMutation.isPending, triggerSave])
 
-  const markdownExtensions = useMemo(() => [markdown(), EditorView.lineWrapping], [])
+  const markdownExtensions = useMemo(
+    () => [markdown(), EditorView.lineWrapping, browserFindKeymap, markdownFormattingKeymap, markdownHighlighting, markdownEditorBaseTheme],
+    [],
+  )
   const remarkPlugins = useMemo<PluggableList>(() => [remarkGfm, remarkMath], [])
   const rehypePlugins = useMemo<PluggableList>(() => [rehypeRaw, rehypeKatex, rehypeHighlight], [])
   const resolveAssetUrl = useCallback(

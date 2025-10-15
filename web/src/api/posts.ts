@@ -118,3 +118,10 @@ export async function deleteEntry(slug: string, target: string): Promise<void> {
     body: { target },
   })
 }
+
+export async function deployToHugo(commitMessage: string): Promise<void> {
+  await apiFetch<{ message: string }>('/deploy', {
+    method: 'POST',
+    body: { message: commitMessage },
+  })
+}
