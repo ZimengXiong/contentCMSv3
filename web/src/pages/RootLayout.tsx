@@ -1,0 +1,27 @@
+import { Link, Outlet, useLocation } from 'react-router-dom'
+import clsx from 'clsx'
+import { ThemeToggle } from '../components/ThemeToggle'
+
+export default function RootLayout() {
+  const location = useLocation()
+  const isHome = location.pathname === '/'
+  const isEditor = location.pathname.startsWith('/post/')
+  const title = isHome ? 'Posts' : 'Editor'
+
+  return (
+    <div className="app-shell">
+      <header className={clsx('app-header', isEditor && 'app-header-wide')}>
+        <div className="app-brand">
+          <Link to="/">Content CMS</Link>
+          <span className="app-brand-subtitle">{title}</span>
+        </div>
+        <div className="header-actions">
+          <ThemeToggle />
+        </div>
+      </header>
+      <main className={clsx('app-main', isEditor && 'app-main-wide')}>
+        <Outlet />
+      </main>
+    </div>
+  )
+}
